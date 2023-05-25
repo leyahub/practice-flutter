@@ -1,14 +1,13 @@
-import 'dart:html';
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'dart:async';
 
 void main() {
   runApp(const MyApp());
 }
 
-// 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
@@ -92,15 +91,49 @@ class PageHome2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return ChangeNotifierProvider(
+    create: (context) => Memo(),
+    child: Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const <Widget>[
-          Text(
-            'Home2',
+        children: <Widget>[
+          FutureBuilder<List<Memo>>(
+            future: Memo.getMemos(),
+            builder:(context, snapshot) {
+              if (snapshot.hasData) {
+                return Expanded(
+                  child: 
+                    ListView.builder(
+                      itemCount: snapshot.data?.length,
+                      itemBuilder:(context, index) {
+                        return ListTile(title: Text('id:${snapshot.data?[index].id}' '  テキスト:${snapshot.data?[index].text}'), );
+                      },
+                    ),
+                  );
+              } else {
+                return const CircularProgressIndicator();
+              }
+            }
+            
           ),
-        ]),
+      TextButton(
+        child: const Text('insert'),
+        onPressed: () async {
+          Memo _memo = Memo(id: 1, text: 'test');
+          await _memo.insertMemo(_memo);
+        }
+      )
+        ]
+      ),
+      ),
     );
+  }
+}
+
+class PageHome2State extends ChangeNotifier {
+
+  void get() {
+    Memo.getMemos();
   }
 }
 
@@ -153,11 +186,12 @@ class TestList extends StatelessWidget {
   }
 }
 
-class Memo {
-  final int id;
-  final String text;
+class Memo extends ChangeNotifier {
+  final int? id;
+  final String? text;
+  List<Memo> memoList = <Memo>[];
 
-  Memo({required this.id, required this.text});
+  Memo({this.id, this.text});
 
   Map<String, dynamic> toMap() {
     return {
@@ -165,9 +199,14 @@ class Memo {
       'text': text,
     };
   }
-
+  
   static Future<Database> get database async {
+
+    // openDatabaseでdbのインスタンスを取得することができる
     final Future<Database> _database = openDatabase(
+
+      // データベース(ファイル)の保存先を決める
+      // dbがpathに存在しないとき、onCreateが呼ばれる
       join(await getDatabasesPath(), 'memo_database.db'),
       onCreate:(db, version) {
         return db.execute(
@@ -179,7 +218,7 @@ class Memo {
     return _database;
   }
 
-  static Future<void> insertMemo(Memo memo) async {
+  Future<void> insertMemo(Memo memo) async {
     final Database db = await database;
     await db.insert(
       'memo',
@@ -190,7 +229,6 @@ class Memo {
 
   static Future<List<Memo>> getMemos() async {
     final Database db = await database;
-
     final List<Map<String, dynamic>> maps = await db.query('memo');
     return List.generate(maps.length, (i) {
       return Memo(
