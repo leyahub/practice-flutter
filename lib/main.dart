@@ -97,13 +97,13 @@ class PageHome2 extends StatelessWidget {
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const <Widget>[
-            Expanded (
+          children: <Widget>[
+            const Expanded (
               child: ListData()
             ),
-            GetDataButton(),
+            const GetDataButton(),
             InsertButton(),
-            DeleteButton(),
+            const DeleteButton(),
           ]
         ),
       ),
@@ -145,69 +145,32 @@ class GetDataButton extends StatelessWidget {
 }
 
 class InsertButton extends StatelessWidget {
-  const InsertButton({ Key? key }) : super(key: key);
+  InsertButton({ Key? key }) : super(key: key);
+  final textControl = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      child: const Text('Insert'),
-      onPressed: () async {
-        Memo _memo = Memo();
-        _memo.insertMemo(
-          <Memo> [
-            Memo(id: 2, text: "test"),
-          ]
-        );
-      }
-    );
-  }
-}
-
-class TestList extends StatelessWidget {
-  const TestList({ Key? key }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox(
-        width: 350,
-        child: ListView(
-          children: [
-            Container(
-              child: const Center(child: Text('NICE 筋トレ！')),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(40),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.shade400,
-                    spreadRadius: 0.1,
-                    blurRadius: 4,
-                  )
-                ]
-              ),
-              constraints: const BoxConstraints(minHeight: 200),
-              margin: const EdgeInsets.symmetric(vertical: 20),
-            ),
-            Container(
-              child: const Center(child: Text('Entry B')),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(40),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.shade400,
-                    spreadRadius: 0.1,
-                    blurRadius: 4,
-                  )
-                ]
-              ),
-              constraints: const BoxConstraints(minHeight: 300),
-              margin: const EdgeInsets.symmetric(vertical: 20),
-            ),
-          ],
-        )
-      )
+    return Column(
+      children: [
+        TextButton(
+          child: const Text('Insert'),
+          onPressed: () async {
+            Memo _memo = Memo();
+            _memo.insertMemo(
+              <Memo> [
+                Memo(id: 2, text: textControl.text),
+              ]
+            );
+          }
+        ),
+        TextField(
+          controller: textControl,
+          decoration: const InputDecoration(
+          border: InputBorder.none,
+          hintText: "test",
+          )
+        ),
+      ]
     );
   }
 }
@@ -222,6 +185,21 @@ class DeleteButton extends StatelessWidget {
       onPressed: () {
         Memo.delete();
       },
+    );
+  }
+}
+
+class InputTextField extends StatelessWidget {
+  const InputTextField({ Key? key }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    
+    return const TextField(
+      decoration: InputDecoration(
+        border: InputBorder.none,
+        hintText: "test",
+      )
     );
   }
 }
@@ -290,5 +268,54 @@ class Memo extends ChangeNotifier {
   static void delete() async {
     final String path = join(await getDatabasesPath(), 'memo_database.db');
     await deleteDatabase(path);
+  }
+}
+
+class TestList extends StatelessWidget {
+  const TestList({ Key? key }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SizedBox(
+        width: 350,
+        child: ListView(
+          children: [
+            Container(
+              child: const Center(child: Text('NICE 筋トレ！')),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(40),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.shade400,
+                    spreadRadius: 0.1,
+                    blurRadius: 4,
+                  )
+                ]
+              ),
+              constraints: const BoxConstraints(minHeight: 200),
+              margin: const EdgeInsets.symmetric(vertical: 20),
+            ),
+            Container(
+              child: const Center(child: Text('Entry B')),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(40),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.shade400,
+                    spreadRadius: 0.1,
+                    blurRadius: 4,
+                  )
+                ]
+              ),
+              constraints: const BoxConstraints(minHeight: 300),
+              margin: const EdgeInsets.symmetric(vertical: 20),
+            ),
+          ],
+        )
+      )
+    );
   }
 }
