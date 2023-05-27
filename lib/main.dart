@@ -89,51 +89,77 @@ class PageHome extends StatelessWidget {
 class PageHome2 extends StatelessWidget {
   const PageHome2({Key? key }) : super(key: key);
 
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-    create: (context) => Memo(),
-    child: Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          FutureBuilder<List<Memo>>(
-            future: Memo.getMemos(),
-            builder:(context, snapshot) {
-              if (snapshot.hasData) {
-                return Expanded(
-                  child: 
-                    ListView.builder(
-                      itemCount: snapshot.data?.length,
-                      itemBuilder:(context, index) {
-                        return ListTile(title: Text('id:${snapshot.data?[index].id}' '  テキスト:${snapshot.data?[index].text}'), );
-                      },
-                    ),
-                  );
-              } else {
-                return const CircularProgressIndicator();
-              }
-            }
-            
-          ),
-      TextButton(
-        child: const Text('insert'),
-        onPressed: () async {
-          Memo _memo = Memo(id: 1, text: 'test');
-          await _memo.insertMemo(_memo);
-        }
-      )
-        ]
-      ),
+      create: (_) => Memo(),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const <Widget>[
+            Expanded (
+              child: ListData()
+            ),
+            GetDataButton(),
+            InsertButton(),
+            DeleteButton(),
+          ]
+        ),
       ),
     );
   }
 }
 
-class PageHome2State extends ChangeNotifier {
+class ListData extends StatelessWidget {
+  const ListData({ Key? key }) : super(key: key);
 
-  void get() {
-    Memo.getMemos();
+  @override
+  Widget build(BuildContext context) {
+    final memoList = context.watch<Memo>().memoList;
+    if (memoList.isEmpty) const CircularProgressIndicator();
+
+    return ListView.builder(
+      itemCount: memoList.length,
+      itemBuilder: (context, index) {
+          return ListTile(title: Text('id:${memoList[index].id}' '  テキスト:${memoList[index].text}'), );
+        }
+      );
+  }
+}
+
+class GetDataButton extends StatelessWidget {
+  const GetDataButton({ Key? key }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final Function get = context.read<Memo>().getMemos;
+
+    return TextButton(
+      child: const Text('get'),
+      onPressed: () async {
+        get();
+      }
+    ); 
+  }
+}
+
+class InsertButton extends StatelessWidget {
+  const InsertButton({ Key? key }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      child: const Text('Insert'),
+      onPressed: () async {
+        Memo _memo = Memo();
+        _memo.insertMemo(
+          <Memo> [
+            Memo(id: 2, text: "test"),
+          ]
+        );
+      }
+    );
   }
 }
 
@@ -186,10 +212,24 @@ class TestList extends StatelessWidget {
   }
 }
 
+class DeleteButton extends StatelessWidget {
+  const DeleteButton({ Key? key }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      child: const Text('delete'),
+      onPressed: () {
+        Memo.delete();
+      },
+    );
+  }
+}
+
 class Memo extends ChangeNotifier {
   final int? id;
   final String? text;
-  List<Memo> memoList = <Memo>[];
+  final List<Memo> memoList = <Memo>[];
 
   Memo({this.id, this.text});
 
@@ -218,23 +258,37 @@ class Memo extends ChangeNotifier {
     return _database;
   }
 
-  Future<void> insertMemo(Memo memo) async {
+  // データ追加
+  Future<void> insertMemo(List<Memo> memos) async {
     final Database db = await database;
-    await db.insert(
-      'memo',
-      memo.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    for (var memo in memos) {
+      await db.insert(
+        'memo',
+        memo.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
-  static Future<List<Memo>> getMemos() async {
+  // memoListの更新
+  void getMemos() async {
+    // データベースのインスタンス
     final Database db = await database;
+
+    // データベースから取得
     final List<Map<String, dynamic>> maps = await db.query('memo');
-    return List.generate(maps.length, (i) {
-      return Memo(
-        id: maps[i]['id'],
-        text: maps[i]['text'],
-        );
-    });
+
+    // 保持
+    for (var i in maps) {
+      memoList.add(
+        Memo(id: i['id'], text: i['text'])
+      );
+    }
+    notifyListeners();
+  }
+
+  static void delete() async {
+    final String path = join(await getDatabasesPath(), 'memo_database.db');
+    await deleteDatabase(path);
   }
 }
