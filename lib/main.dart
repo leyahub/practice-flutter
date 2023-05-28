@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -148,6 +149,7 @@ class GetDataButton extends StatelessWidget {
 
 class InsertButton extends StatelessWidget {
   InsertButton({ Key? key }) : super(key: key);
+  final idControl = TextEditingController();
   final textControl = TextEditingController();
 
   @override
@@ -160,16 +162,25 @@ class InsertButton extends StatelessWidget {
             Memo _memo = Memo();
             _memo.insertMemo(
               <Memo> [
-                Memo(id: 2, text: textControl.text),
+                Memo(id: int.parse(idControl.text), text: textControl.text),
               ]
             );
           }
         ),
         TextField(
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          controller: idControl,
+          decoration: const InputDecoration(
+          border: InputBorder.none,
+          hintText: "id",
+          )
+        ),
+        TextField(
           controller: textControl,
           decoration: const InputDecoration(
           border: InputBorder.none,
-          hintText: "test",
+          hintText: "text",
           )
         ),
       ]
@@ -257,8 +268,9 @@ class Memo extends ChangeNotifier {
 
     // データベースから取得
     final List<Map<String, dynamic>> maps = await db.query('memo');
+    memoList.clear();
 
-    // 保持
+     // 保持
     for (var i in maps) {
       memoList.add(
         Memo(id: i['id'], text: i['text'])
@@ -375,12 +387,6 @@ class PostList extends StatelessWidget {
       )
     );
   }
-}
-
-class PostType {
-  PostType({this.id, this.text});
-  final int? id;
-  final String? text;
 }
 
 class PagePostList extends StatelessWidget {
