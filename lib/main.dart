@@ -41,13 +41,14 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  final List<Widget> _display = [ const PageHome(), const PageHome2(), const TestList()];
+  final List<Widget> _display = [ const PageHome(), const PageHome2(), const PagePostList(), const TestList()];
 
   @override
   Widget build(BuildContext context) {
     const home = 'ホーム';
     const home2 = 'ホーム2';
-    const list = 'リスト';
+    const list = '投稿リスト２';
+    const list2 = 'リスト';
 
     return Scaffold(
       appBar: AppBar(
@@ -58,8 +59,10 @@ class _MyHomePageState extends State<MyHomePage> {
         items: const <BottomNavigationBarItem>[
         BottomNavigationBarItem(icon: Icon(Icons.home), label: home),
         BottomNavigationBarItem(icon: Icon(Icons.accessible_rounded), label: home2),
-        BottomNavigationBarItem(icon: Icon(Icons.access_alarm_outlined), label: list),
+        BottomNavigationBarItem(icon: Icon(Icons.add_to_drive), label: list),
+        BottomNavigationBarItem(icon: Icon(Icons.access_alarm_outlined), label: list2),
       ],
+        type: BottomNavigationBarType.fixed,
         onTap: _onItemTapped,
         currentIndex: _selectIndex,
       ),
@@ -89,7 +92,6 @@ class PageHome extends StatelessWidget {
 class PageHome2 extends StatelessWidget {
   const PageHome2({Key? key }) : super(key: key);
 
-
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -99,7 +101,7 @@ class PageHome2 extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const Expanded (
-              child: ListData()
+              child: DataList()
             ),
             const GetDataButton(),
             InsertButton(),
@@ -111,8 +113,8 @@ class PageHome2 extends StatelessWidget {
   }
 }
 
-class ListData extends StatelessWidget {
-  const ListData({ Key? key }) : super(key: key);
+class DataList extends StatelessWidget {
+  const DataList({ Key? key }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -316,6 +318,89 @@ class TestList extends StatelessWidget {
           ],
         )
       )
+    );
+  }
+}
+
+// 投稿されたデータ(単体)
+class Post extends StatelessWidget {
+  const Post(this.post, { Key? key }) : super(key: key);
+  final Memo post;
+
+  @override
+  Widget build(BuildContext context) {
+    if (post.text!.isEmpty)  {
+      return Container();
+    }
+
+    return Container(
+      // text
+      child: Center(
+        child: Text(post.text!)),
+
+      // design
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(40),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade400,
+            spreadRadius: 0.1,
+            blurRadius: 4,
+          )
+        ]
+      ),
+      constraints: const BoxConstraints(minHeight: 200),
+      margin: const EdgeInsets.symmetric(vertical: 20),
+    );
+  }
+}
+
+class PostList extends StatelessWidget {
+  const PostList({ Key? key }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final postList = context.watch<Memo>().memoList;
+
+    return Center(
+      child: SizedBox(
+        width: 350,
+        child: ListView.builder(
+        itemCount: postList.length,
+        itemBuilder: (context, index) {
+          return Post(postList[index]);
+          },
+        ),
+      )
+    );
+  }
+}
+
+class PostType {
+  PostType({this.id, this.text});
+  final int? id;
+  final String? text;
+}
+
+class PagePostList extends StatelessWidget {
+  const PagePostList({ Key? key }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => Memo(),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const <Widget>[
+            Expanded (child: 
+              PostList(),
+            ),
+            GetDataButton(),
+          ]
+        ),
+      ),
     );
   }
 }
