@@ -4,6 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:async';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
+
+DateTime _focusedDay = DateTime.now();
 
 void main() {
   runApp(const MyApp());
@@ -42,7 +46,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  final List<Widget> _display = [ const PageHome(), const PageHome2(), const PagePostList(), const TestList()];
+  final List<Widget> _display = [ const PageTop(), const PageHome2(), const PagePostList(), const TestList()];
 
   @override
   Widget build(BuildContext context) {
@@ -71,8 +75,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class PageHome extends StatelessWidget {
-  const PageHome({ Key? key }) : super(key: key);
+class PageTop extends StatelessWidget {
+  const PageTop({ Key? key }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -81,11 +85,71 @@ class PageHome extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           Text(
-            't',
+            'カレンダー',
             style: Theme.of(context).textTheme.headline4,
           ),
+          const Calendar(),
         ],
       ),
+    );
+  }
+}
+
+class Calendar extends StatefulWidget {
+  const Calendar({ Key? key }) : super(key: key);
+
+  @override
+  State<Calendar> createState() => _CalendarState();
+}
+
+class _CalendarState extends State<Calendar> {
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+  DateTime? _selectedDay;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget> [
+        Container (
+          child: TableCalendar(
+            firstDay: DateTime.utc(2023, 5, 1),
+            lastDay: DateTime.utc(2024, 4, 30),
+            focusedDay: _focusedDay,
+            calendarFormat: _calendarFormat,
+            selectedDayPredicate: (day) {
+              return isSameDay(_selectedDay, day);
+            },
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                _selectedDay = selectedDay;
+                _focusedDay = focusedDay;
+              });
+            },
+            onFormatChanged: (format) {
+              if (_calendarFormat != format) {
+                setState(() {
+                  _calendarFormat = format;
+                });
+              }
+            },
+          ),
+          // design
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(40),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.shade400,
+                spreadRadius: 0.1,
+                blurRadius: 4,
+              )
+            ]
+          ),
+          margin: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.all(20),
+        ),
+        Text(_selectedDay.toString())
+      ],
     );
   }
 }
@@ -125,7 +189,7 @@ class DataList extends StatelessWidget {
     return ListView.builder(
       itemCount: memoList.length,
       itemBuilder: (context, index) {
-          return ListTile(title: Text('id:${memoList[index].id}' '  テキスト:${memoList[index].text}'), );
+          return ListTile(title: Text('id:${memoList[index].id}' '  テキスト:${memoList[index].text}  日付:${memoList[index].date}'), );
         }
       );
   }
@@ -162,7 +226,10 @@ class InsertButton extends StatelessWidget {
             Memo _memo = Memo();
             _memo.insertMemo(
               <Memo> [
-                Memo(id: int.parse(idControl.text), text: textControl.text),
+                Memo(
+                  id: int.parse(idControl.text), 
+                  text: textControl.text,
+                  date: DateFormat('yyyy/MM/dd').format(DateTime.parse(DateTime.now().toIso8601String()).toLocal()).toString()),
               ]
             );
           }
@@ -220,14 +287,16 @@ class InputTextField extends StatelessWidget {
 class Memo extends ChangeNotifier {
   final int? id;
   final String? text;
+  final String? date;
   final List<Memo> memoList = <Memo>[];
 
-  Memo({this.id, this.text});
+  Memo({this.id, this.text, this.date});
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'text': text,
+      'date': date,
     };
   }
   
@@ -241,7 +310,7 @@ class Memo extends ChangeNotifier {
       join(await getDatabasesPath(), 'memo_database.db'),
       onCreate:(db, version) {
         return db.execute(
-          "CREATE TABLE memo(id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT)"
+          "CREATE TABLE memo(id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, date TEXT)"
         );
       },
       version: 1,
@@ -273,7 +342,7 @@ class Memo extends ChangeNotifier {
      // 保持
     for (var i in maps) {
       memoList.add(
-        Memo(id: i['id'], text: i['text'])
+        Memo(id: i['id'], text: i['text'], date: i['date'])
       );
     }
     notifyListeners();
@@ -347,9 +416,32 @@ class Post extends StatelessWidget {
 
     return Container(
       // text
-      child: Center(
-        child: Text(post.text!)),
-
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            child: const Text('t'),
+            width: 200,
+            height: 200,
+            decoration: const BoxDecoration(
+              color: Colors.cyanAccent,
+            ),
+          ),
+          Container(
+            width: 100,
+            height: 200,
+            child: Text(
+              post.text!,
+              style: Theme.of(context).textTheme.headline5,
+              textAlign: TextAlign.start,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.orange,
+            ),
+          ),
+        ],
+      ),
+      
       // design
       decoration: BoxDecoration(
         color: Colors.white,
@@ -363,11 +455,13 @@ class Post extends StatelessWidget {
         ]
       ),
       constraints: const BoxConstraints(minHeight: 200),
-      margin: const EdgeInsets.symmetric(vertical: 20),
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.all(20),
     );
   }
 }
 
+// 投稿されたデータ(リスト)
 class PostList extends StatelessWidget {
   const PostList({ Key? key }) : super(key: key);
 
